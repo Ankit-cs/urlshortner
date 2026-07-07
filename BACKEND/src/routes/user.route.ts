@@ -1,9 +1,9 @@
-import express from "express"
-import { getAllUserUrls } from "../controller/user.controller.ts"
-import { authMiddleware } from "../middleware/auth.middleware.ts"
+import { Hono } from "hono";
+import { getAllUserUrls } from "../controller/user.controller.ts";
+import { authMiddleware } from "../middleware/auth.middleware.ts";
 
-const router = express.Router()
+const router = new Hono();
 
-router.post("/urls",authMiddleware, getAllUserUrls)
+router.get("/urls", authMiddleware, getAllUserUrls);
 
-export default router
+export default router;
