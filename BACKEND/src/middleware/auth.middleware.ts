@@ -1,18 +1,18 @@
 import { findUserById } from "../dao/user.dao.ts"
 import { verifyToken } from "../utils/helper.ts"
+import { getCookie } from "hono/cookie"
+import type { Context, Next } from "hono"
 
-import type { Request, Response, NextFunction } from "express";
-
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies.accessToken
-    if(!token) return res.status(401).json({message:"Unauthorized"})
+export const authMiddleware = async (c: Context, next: Next) => {
+    const token = getCookie(c, "accessToken")
+    if(!token) return c.json({message:"Unauthorized"}, 401)
     try {
-        const decoded = verifyToken(token)
+        const decoded = await verifyToken(token)
         const user = await findUserById(decoded)
-        if(!user) return res.status(401).json({message:"Unauthorized"})
-        req.user = user
-        next()
+        if(!user) return c.json({message:"Unauthorized"}, 401)
+        c.set('user', user)
+        await next()
     } catch (error) {
-        return res.status(401).json({message:"Unauthorized",error})
+        return c.json({message:"Unauthorized", error}, 401)
     }
 }
