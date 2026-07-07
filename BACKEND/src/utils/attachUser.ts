@@ -1,20 +1,20 @@
 import { findUserById } from "../dao/user.dao.ts"
 import { verifyToken } from "./helper.ts"
+import { getCookie } from "hono/cookie"
+import type { Context, Next } from "hono"
 
-import type { Request, Response, NextFunction } from "express";
-
-export const attachUser = async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies.accessToken
-    if(!token) return next()
+export const attachUser = async (c: Context, next: Next) => {
+    const token = getCookie(c, "accessToken")
+    if(!token) return await next()
 
     try {
-        const decoded = verifyToken(token)
+        const decoded = await verifyToken(token)
         const user = await findUserById(decoded)
-        if(!user) return next()
-        req.user = user
-        next()
+        if(!user) return await next()
+        c.set('user', user)
+        await next()
     } catch (error) {
         console.log(error)
-        next()
+        await next()
     }
 }
