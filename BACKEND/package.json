@@ -1,42 +1,24 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "URL Shortener Backend using Node.js, Express, and MongoDB",
-  "main": "app.ts",
-  "type": "module",
+  "name": "worker",
+  "author": "Priyansh Bhatt",
+  "license": "GPL-3.0",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
-    "dev": "nodemon --watch src -e ts,js --exec ts-node app.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [ 
-    "url-shortener",
-    "express",
-    "nodejs",
-    "mongodb"
-  ],
-  "author": "Ankit Kumar",
-  "license": "ISC",
-  "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.15.0",
-    "nanoid": "^5.1.5"
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest",
+    "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.0",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "@cloudflare/vitest-pool-workers": "^0.12.4",
+    "@types/node": "^25.9.1",
+    "typescript": "^5.5.2",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.94.0"
+  },
+  "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^3.2.1"
   }
 }
