@@ -1,16 +1,18 @@
 import { nanoid } from "nanoid";
 import { cookieOptions } from "../config/config.ts";
-import jsonwebtoken from "jsonwebtoken"
+import jwt from "@tsndr/cloudflare-worker-jwt"
 
 export const generateNanoId = (length: number) =>{
     return nanoid(length);
 }
 
-export const signToken = (payload: any) =>{
-    return jsonwebtoken.sign(payload, process.env.JWT_SECRET as string, {expiresIn: "1h"})
+export const signToken = async (payload: any) =>{
+    return await jwt.sign({ ...payload, exp: Math.floor(Date.now() / 1000) + (60 * 60) }, process.env.JWT_SECRET as string)
 }
 
-export const verifyToken = (token: string) =>{
-    const decoded = jsonwebtoken.verify(token, process.env.JWT_SECRET as string) as any;
-    return decoded.id
+export const verifyToken = async (token: string) =>{
+    const isValid = await jwt.verify(token, process.env.JWT_SECRET as string)
+    if (!isValid) throw new Error("Invalid Token")
+    const { payload } = jwt.decode(token)
+    return payload.id
 }
