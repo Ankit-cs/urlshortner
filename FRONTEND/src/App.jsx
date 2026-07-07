@@ -434,11 +434,11 @@ function App() {
             <h1 className="text-[2.75rem] sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter mb-6 leading-[1.05] text-black dark:text-white max-w-5xl mx-auto">
               Long URLs <br />
               were a mistake. <br />
-              <span className="whitespace-nowrap"><strong>Shrynkly</strong> fixes that.</span>
+              <span className="whitespace-nowrap"><strong>shrink</strong> fixes that.</span>
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              URLs got out of hand. Shrynkly puts them back in their place - shorter, smarter, and fully under your control. Your browser does the work. Your data stays yours.
+              URLs got out of hand. shrink puts them back in their place - shorter, smarter, and fully under your control. Your browser does the work. Your data stays yours.
             </p>
 
             <div className={`flex flex-col sm:flex-row gap-4 justify-center items-center w-full ${user ? 'mb-4' : 'mb-16'}`}>
@@ -661,7 +661,7 @@ function App() {
         </div>
       </motion.section>
 
-      {/* Why Shrynkly (Black Section) */}
+      {/* Why shrink (Black Section) */}
       <motion.section 
         id="why" 
         initial={{ opacity: 0, y: 40 }}
@@ -671,7 +671,7 @@ function App() {
         className="w-full bg-white dark:bg-[#050505] text-black dark:text-white py-32 px-4 relative z-10 border-b border-black/10 dark:border-white/5 transition-colors duration-300"
       >
         <div className="max-w-6xl mx-auto flex flex-col items-center">
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-center">Why Shrynkly?</h2>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4 text-center">Why shrink?</h2>
           <p className="text-gray-500 dark:text-gray-400 text-lg mb-16 text-center">Built for speed, privacy, and simplicity.</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-16">
@@ -769,7 +769,7 @@ function App() {
         </div>
         
         <div className="max-w-7xl mx-auto pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <div>© 2026 Shrynkly. All rights reserved.</div>
+          <div>© 2026 shrink. All rights reserved.</div>
           <div className="font-mono text-[14px] tracking-widest text-[#7ED957] bg-[#1a1a1a] border border-white/5 px-4 py-2 rounded-lg shadow-[0_0_15px_rgba(126,217,87,0.15)] flex items-center justify-center font-bold">
             {currentTime}
           </div>
