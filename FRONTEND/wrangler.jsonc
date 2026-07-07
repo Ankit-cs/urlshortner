@@ -1,0 +1,11 @@
+{
+	"name": "frontend-pages",
+	"compatibility_date": "2024-11-12",
+	"pages_build_output_dir": "./dist",
+	"kv_namespaces": [
+		{
+			"binding": "LINKS",
+			"id": "e4ed130b1c09424e8e19c362abdc7f8c"
+		}
+	]
+}
