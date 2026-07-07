@@ -1,10 +1,8 @@
-import wrapAsync from "../utils/tryCatchWrapper.ts"
 import { getAllUserUrlsDao } from "../dao/user.dao.ts"
+import type { Context } from "hono"
 
-import type { Request, Response } from "express";
-
-export const getAllUserUrls = wrapAsync(async (req: Request, res: Response) => {
-    const {_id} = req.user
-    const urls = await getAllUserUrlsDao(_id)
-    res.status(200).json({message:"success",urls})
-})
+export const getAllUserUrls = async (c: Context) => {
+    const user = c.get('user')
+    const urls = await getAllUserUrlsDao(user._id)
+    return c.json({message:"success",urls}, 200)
+}
