@@ -166,7 +166,7 @@ export default function AllLinks() {
                     
                     <div className="flex items-center gap-1">
                       <button 
-                        onClick={() => copyToClipboard(link.shortCode, link.shortCode)} 
+                        onClick={() => copyToClipboard(`${window.location.origin}/${link.shortCode}`, link.shortCode)} 
                         disabled={link.deleted}
                         className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400" 
                         title="Copy"
