@@ -1,32 +1,32 @@
 import { getShortUrl } from "../dao/short_url_db.ts";
 import { createShortUrlWithoutUser, createShortUrlWithUser } from "../services/short_url.service.ts";
-import wrapAsync from "../utils/tryCatchWrapper.ts";
+import type { Context } from "hono"
 
-import type { Request, Response } from "express";
-
-export const createShortUrl = wrapAsync(async (req: Request, res: Response) => {
-  const data = req.body;
+export const createShortUrl = async (c: Context) => {
+  const data = await c.req.json();
   let shortUrl;
 
-  if (req.user) {
-    shortUrl = await createShortUrlWithUser(data.url, req.user._id, data.slug);
+  const user = c.get('user');
+
+  if (user) {
+    shortUrl = await createShortUrlWithUser(data.url, user._id, data.slug);
   } else {
     shortUrl = await createShortUrlWithoutUser(data.url, data.slug);
   }
 
-  res.status(200).json({ shortUrl: `${process.env.APP_URL}/${shortUrl}` });
-});
+  return c.json({ shortUrl: `${process.env.APP_URL}/${shortUrl}` }, 200);
+};
 
-export const redirectFromShortUrl = wrapAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const url = await getShortUrl(id as string);
+export const redirectFromShortUrl = async (c: Context) => {
+  const id = c.req.param('id');
+  const url = await getShortUrl(id);
   if (!url) throw new Error("Short URL not found");
-  res.redirect(url.full_url as string);
-});
+  return c.redirect(url.full_url as string);
+};
 
-export const createCustomShortUrl = wrapAsync(async (req: Request, res: Response) => {
-  const { url, slug } = req.body;
+export const createCustomShortUrl = async (c: Context) => {
+  const { url, slug } = await c.req.json();
   const shortUrl = await createShortUrlWithoutUser(url, slug);
-  res.status(200).json({ shortUrl: `${process.env.APP_URL}/${shortUrl}` });
-});
+  return c.json({ shortUrl: `${process.env.APP_URL}/${shortUrl}` }, 200);
+};
 
