@@ -214,7 +214,7 @@ export default function Dashboard() {
   };
 
   if (authLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#050505]"><div className="w-8 h-8 border-4 border-gray-200 border-t-black dark:border-[#333] dark:border-t-white rounded-full animate-spin" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black"><div className="w-8 h-8 border-4 border-gray-200 border-t-black dark:border-[#333] dark:border-t-white rounded-full animate-spin" /></div>;
   }
 
   // Plan Limits
@@ -225,7 +225,7 @@ export default function Dashboard() {
   const firstName = user.user_metadata?.full_name?.split(' ')[0] || 'Creator';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#050505] text-gray-900 dark:text-white selection:bg-blue-500/30">
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30">
       
       {/* Top Navbar Removed */}
 
