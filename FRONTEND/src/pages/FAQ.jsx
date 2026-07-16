@@ -9,7 +9,11 @@ const faqCategories = [
     items: [
       {
         question: "What is shrink?",
-        answer: "shrink is a lightning-fast, privacy-first URL shortener designed for speed and simplicity. We help you take long, unwieldy links and turn them into short, manageable URLs instantly."
+        answer: "shrink is a lightning-fast, privacy-first URL shortener designed for speed and simplicity. We help you take long, unwieldy links and turn them into short, memorable URLs instantly, with support for custom slugs!"
+      },
+      {
+        question: "Can I choose my own short link (Custom Slugs)?",
+        answer: "Yes! When shortening a link, you have the option to enter a 'Custom Slug' (alias). This allows you to create branded, memorable links like shrink.ly/my-custom-link instead of random characters."
       },
       {
         question: "Is it really 100% free?",
