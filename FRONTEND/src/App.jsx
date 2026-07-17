@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { Link, ArrowRight, Check, Copy, QrCode, Zap, History, Trash2, Scissors, Globe, Layers, Shield, Clock, Sun, Moon, BarChart2, LayoutDashboard, Smartphone, Ban, Gift, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -315,10 +316,14 @@ function App() {
       return;
     }
 
-    try {
-      new URL(url);
-    } catch {
-      setError('Please enter a valid URL (e.g., https://example.com)');
+    const shortenSchema = z.object({
+      url: z.string().url('Please enter a valid URL (e.g., https://example.com)'),
+      alias: z.string().regex(/^[a-zA-Z0-9-]*$/, 'Alias can only contain letters, numbers, and hyphens').max(30, 'Alias is too long').optional().or(z.literal(''))
+    });
+
+    const parsed = shortenSchema.safeParse({ url, alias });
+    if (!parsed.success) {
+      setError(parsed.error.errors[0].message);
       return;
     }
 
