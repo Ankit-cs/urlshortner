@@ -10,6 +10,7 @@
     "start": "wrangler dev",
     "test": "vitest",
     "cf-typegen": "wrangler types"
+
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.12.4",
