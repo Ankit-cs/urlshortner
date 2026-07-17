@@ -14,5 +14,10 @@
 			"binding": "LINKS",
 			"id": "6dd3f8e06b624df5bf5218fb1ef87780"
 		}
-	]
+	],
+	"triggers": {
+		"crons": [
+			"0 0 * * *"
+		]
+	}
 }

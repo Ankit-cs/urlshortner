@@ -169,12 +169,66 @@ export default {
 					});
 				}
 				ctx.waitUntil(env.LINKS.put(shortCode, JSON.stringify({ ...data, clicks: (data.clicks || 0) + 1 })));
+				
+				const eventId = `event:${shortCode}:${Date.now()}-${generateId(4)}`;
+				const eventData = {
+					timestamp: new Date().toISOString(),
+					referrer: request.headers.get('Referer') || 'Direct',
+					userAgent: request.headers.get('User-Agent') || 'Unknown',
+					ip: request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'Unknown'
+				};
+				ctx.waitUntil(env.LINKS.put(eventId, JSON.stringify(eventData), { expirationTtl: 2592000 }));
+
 				return new Response(JSON.stringify({ targetUrl: data.targetUrl || dataStr }), {
 					headers: { 'Content-Type': 'application/json', ...corsHeaders }
 				});
 			} catch {
 				return new Response(JSON.stringify({ targetUrl: dataStr }), {
 					headers: { 'Content-Type': 'application/json', ...corsHeaders }
+				});
+			}
+		}
+
+		// ─── GET /api/analytics/:shortCode — fetch granular analytics for a link ───
+		const analyticsMatch = url.pathname.match(/^\/api\/analytics\/([A-Za-z0-9]{4,12})$/);
+		if (analyticsMatch && request.method === 'GET') {
+			const { userId, error } = await verifyAuth(request);
+			if (!userId) {
+				return new Response(JSON.stringify({ error: error || 'Unauthorized' }), {
+					status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders }
+				});
+			}
+
+			const shortCode = analyticsMatch[1];
+			const dataStr = await env.LINKS.get(shortCode);
+			if (!dataStr) {
+				return new Response(JSON.stringify({ error: 'Link not found' }), {
+					status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders }
+				});
+			}
+			
+			const data = JSON.parse(dataStr);
+			if (data.userId !== userId) {
+				return new Response(JSON.stringify({ error: 'Forbidden' }), {
+					status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders }
+				});
+			}
+
+			try {
+				const eventsList = await env.LINKS.list({ prefix: `event:${shortCode}:` });
+				const events = (await Promise.all(
+					eventsList.keys.map(async (k) => {
+						const eventStr = await env.LINKS.get(k.name);
+						return eventStr ? JSON.parse(eventStr) : null;
+					})
+				)).filter(Boolean);
+
+				return new Response(JSON.stringify({ link: data, events }), {
+					headers: { 'Content-Type': 'application/json', ...corsHeaders }
+				});
+			} catch (e: any) {
+				return new Response(JSON.stringify({ error: e.message }), {
+					status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders }
 				});
 			}
 		}
@@ -271,6 +325,15 @@ export default {
 				if (data.deleted) return Response.redirect(`${frontendUrl}/not-found`, 302);
 				targetUrl = data.targetUrl || dataStr;
 				ctx.waitUntil(env.LINKS.put(shortCode, JSON.stringify({ ...data, clicks: (data.clicks || 0) + 1 })));
+				
+				const eventId = `event:${shortCode}:${Date.now()}-${generateId(4)}`;
+				const eventData = {
+					timestamp: new Date().toISOString(),
+					referrer: request.headers.get('Referer') || 'Direct',
+					userAgent: request.headers.get('User-Agent') || 'Unknown',
+					ip: request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'Unknown'
+				};
+				ctx.waitUntil(env.LINKS.put(eventId, JSON.stringify(eventData), { expirationTtl: 2592000 }));
 			} catch {}
 
 			return Response.redirect(targetUrl, 302);
@@ -278,4 +341,37 @@ export default {
 
 		return new Response('shrink URL Shortener', { headers: corsHeaders });
 	},
+
+	// ─── SCHEDULED TRIGGER ───
+	async scheduled(event: any, env: Env, ctx: ExecutionContext) {
+		console.log("Running scheduled cleanup task for soft-deleted links...");
+		let cursor: string | undefined = undefined;
+		let totalDeleted = 0;
+		
+		do {
+			const list = await env.LINKS.list({ cursor });
+			cursor = list.list_complete ? undefined : list.cursor;
+			
+			for (const key of list.keys) {
+				// We only care about root link items (length typically 4-12 chars), not event logs
+				if (!key.name.startsWith('event:') && !key.name.startsWith('user_links:')) {
+					const dataStr = await env.LINKS.get(key.name);
+					if (dataStr) {
+						try {
+							const data = JSON.parse(dataStr);
+							if (data.deleted) {
+								const deleteTime = new Date(data.deletedAt || data.createdAt).getTime();
+								// If deleted more than 7 days ago, permanently remove
+								if (Date.now() - deleteTime > 7 * 24 * 60 * 60 * 1000) {
+									await env.LINKS.delete(key.name);
+									totalDeleted++;
+								}
+							}
+						} catch (e) {}
+					}
+				}
+			}
+		} while (cursor);
+		console.log(`Scheduled task complete. Deleted ${totalDeleted} old links.`);
+	}
 };
