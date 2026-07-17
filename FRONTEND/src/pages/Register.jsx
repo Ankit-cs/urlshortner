@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+
 
 export default function Register() {
   const { signUpWithEmail, signInWithGoogle } = useAuth();
@@ -20,8 +22,10 @@ export default function Register() {
     try {
       await signUpWithEmail(email, password, name);
       // Supabase auto logins on signup if email confirmation is off, else we should tell them to check email
+      toast.success("Welcome! Account created successfully.");
       navigate('/dashboard');
     } catch (err) {
+      toast.error(err.message || 'Failed to register');
       setError(err.message || 'Failed to register');
     } finally {
       setLoading(false);
@@ -35,7 +39,7 @@ export default function Register() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white dark:bg-[#111111] p-8 rounded-3xl border border-black/10 dark:border-white/10 shadow-lg"
       >
-        <h2 className="text-3xl font-bold mb-6 text-center text-black dark:text-white">Create Account</h2>
+        <h1 className="text-3xl font-bold mb-6 text-center text-black dark:text-white">Create Account</h1>
         
         {error && (
           <div className="bg-red-100 text-red-600 p-3 rounded-xl mb-4 text-sm text-center">
