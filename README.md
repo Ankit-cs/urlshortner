@@ -29,7 +29,8 @@ Shrink is a highly scalable, edge-optimized URL Shortener built for extreme perf
 * 🛡️ **Turnstile Protection**: Cloudflare Turnstile integration protects against bots seamlessly without intrusive captchas.
 * 🔐 **Secure Authentication**: Fully integrated Supabase identity management for secure user accounts and historical link tracking.
 * 🔍 **Technical SEO Optimized**: Built-in Open Graph metadata, semantic HTML hierarchy, and optimized performance for high search engine visibility.
-
+* ⚡ **Edge Caching**: Built-in Cache API integration to serve redirected links instantly from the nearest Cloudflare edge node without external environment bindings.
+* 🧹 **Automated Link Cleanup**: Leverages Cloudflare Workers Cron Triggers (Scheduled tasks) to automatically purge soft-deleted links from the KV store on a rolling basis.
 ## ⚙️ Architecture & Folder Structure
 
 The project uses a unified architecture where the React frontend and Cloudflare Edge API live seamlessly in the same repository. 
