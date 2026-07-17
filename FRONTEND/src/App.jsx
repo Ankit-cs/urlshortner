@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, ArrowRight, Check, Copy, QrCode, Zap, History, Trash2, Scissors, Globe, Layers, Shield, Clock, Sun, Moon, BarChart2, LayoutDashboard, Smartphone, Ban, Gift } from 'lucide-react';
+import { Link, ArrowRight, Check, Copy, QrCode, Zap, History, Trash2, Scissors, Globe, Layers, Shield, Clock, Sun, Moon, BarChart2, LayoutDashboard, Smartphone, Ban, Gift, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -13,6 +13,8 @@ import Contact from './pages/Contact';
 import HowItWorks from './pages/HowItWorks';
 import Dashboard from './pages/Dashboard';
 import AllLinks from './pages/AllLinks';
+import Analytics from './pages/Analytics';
+import LinkAnalytics from './pages/LinkAnalytics';
 import CookieConsent from './components/CookieConsent';
 import ConfirmModal from './components/ConfirmModal';
 import { useAuth } from './context/AuthContext';
@@ -767,6 +769,8 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
           <Route path="/links" element={<AllLinks />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/analytics/:shortCode" element={<LinkAnalytics />} />
           <Route path="/todos" element={<TodosTest />} />
           <Route path="/not-found" element={<NotFound />} />
           <Route path="/:shortCode" element={<RedirectHandler />} />

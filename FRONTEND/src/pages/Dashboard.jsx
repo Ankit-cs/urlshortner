@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { fetchLinksFromDrive, backupLinkToDrive } from '../utils/googleDrive';
 import ConfirmModal from '../components/ConfirmModal';
+import StatCard from '../components/StatCard';
+import LinkCard from '../components/LinkCard';
 import { 
   Link as LinkIcon, 
   BarChart3, 
@@ -335,49 +337,39 @@ export default function Dashboard() {
         {/* MIDDLE ROW: Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-[#111111] border border-black/15 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-black/30 dark:hover:border-white/20 transition-all cursor-default group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg dark:shadow-none dark:hover:shadow-none">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Total Clicks</h3>
-                <BarChart3 size={16} className="text-gray-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" />
-              </div>
-              <div>
-                <p className="text-4xl font-bold">{totalClicks}</p>
-                <p className="text-xs text-gray-500 mt-2">Across all active links</p>
-              </div>
-            </motion.div>
-            
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-[#111111] border border-black/15 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-black/30 dark:hover:border-white/20 transition-all cursor-default group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg dark:shadow-none dark:hover:shadow-none">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Active Links</h3>
-                <Activity size={16} className="text-gray-600 group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors" />
-              </div>
-              <div>
-                <p className="text-4xl font-bold">{activeLinksArray.length}</p>
-                <p className="text-xs text-gray-500 mt-2">Shortened via shrink</p>
-              </div>
-            </motion.div>
+          <StatCard 
+            delay={0.1}
+            title="Total Clicks" 
+            value={totalClicks} 
+            subtitle="Across all active links" 
+            icon={BarChart3} 
+            colorClass="group-hover:text-blue-500 dark:group-hover:text-blue-400" 
+          />
+          
+          <StatCard 
+            delay={0.2}
+            title="Active Links" 
+            value={activeLinksArray.length} 
+            subtitle="Shortened via shrink" 
+            icon={Activity} 
+            colorClass="group-hover:text-green-500 dark:group-hover:text-green-400" 
+          />
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white dark:bg-[#111111] border border-black/15 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-black/30 dark:hover:border-white/20 transition-all cursor-default group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg dark:shadow-none dark:hover:shadow-none">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Avg. Lifetime</h3>
-                <Clock size={16} className="text-gray-600 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-              </div>
-              <div>
-                <p className="text-4xl font-bold">30d</p>
-                <p className="text-xs text-gray-500 mt-2">Before expiration</p>
-              </div>
-            </motion.div>
+          <StatCard 
+            delay={0.3}
+            title="Avg. Lifetime" 
+            value="30d" 
+            subtitle="Before expiration" 
+            icon={Clock} 
+            colorClass="group-hover:text-purple-500 dark:group-hover:text-purple-400" 
+          />
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="bg-white dark:bg-[#111111] border border-black/15 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between hover:border-black/30 dark:hover:border-white/20 transition-all cursor-default group shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg dark:shadow-none dark:hover:shadow-none">
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Monthly Links</h3>
-                <Activity size={16} className="text-gray-600 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors" />
-              </div>
-              <div>
-                <p className="text-4xl font-bold flex items-baseline gap-2">
-                  {linksUsed} 
-                  <span className="text-xl text-gray-500 font-medium">/ {linkLimit}</span>
-                </p>
+          <StatCard 
+            delay={0.4}
+            title="Monthly Links" 
+            value={<>{linksUsed} <span className="text-xl text-gray-500 font-medium">/ {linkLimit}</span></>} 
+            subtitle={
+              <>
                 <p className="text-xs text-gray-500 mt-1 mb-4">Resets on the 1st</p>
                 <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-2.5 overflow-hidden">
                   <div 
@@ -385,8 +377,11 @@ export default function Dashboard() {
                     style={{ width: `${progressPercent}%` }} 
                   />
                 </div>
-              </div>
-            </motion.div>
+              </>
+            }
+            icon={Activity} 
+            colorClass="group-hover:text-amber-500 dark:group-hover:text-amber-400" 
+          />
         </div>
 
         {/* BOTTOM ROW: Recent Links */}
@@ -416,63 +411,24 @@ export default function Dashboard() {
                 </div>
               ) : (
                 activeLinksArray.slice(0, 5).map((link, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-black/15 dark:hover:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all hover:shadow-md dark:hover:shadow-none gap-4">
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <a href={`${window.location.origin}/${link.shortCode}`} target="_blank" rel="noreferrer" className="font-semibold text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
-                          {window.location.host}/{link.shortCode}
-                        </a>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-gray-400">
-                          Expires in 30d
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 truncate" title={link.targetUrl}>{link.targetUrl}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-[280px]">
-                      <div className="flex items-center gap-1.5 text-gray-400 w-24">
-                        <Activity size={14} />
-                        <span className="text-sm font-medium">{link.clicks || 0}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 w-16 text-right">
-                        {new Date(link.createdAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => copyToClipboard(link.shortCode)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Copy">
-                          <Copy size={16} />
-                        </button>
-
-                        <button onClick={() => openDeleteModal(link)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-400/10 rounded-lg transition-colors" title="Delete">
-                          <Trash2 size={16} />
-                        </button>
-                        <button onClick={() => setActiveQR(link.shortCode)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" title="Show QR">
-                          <QrCode size={16} />
-                        </button>
-                        <a 
-                          href={`${window.location.origin}/${link.shortCode}`} 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setConfirmConfig({
-                              isOpen: true,
-                              title: 'Open External Link',
-                              message: 'This will redirect you to the shortened link in a new tab. Are you sure you want to continue?',
-                              confirmText: 'Open Link',
-                              isDestructive: false,
-                              onConfirm: () => {
-                                window.open(`${window.location.origin}/${link.shortCode}`, '_blank');
-                              }
-                            });
-                          }}
-                          className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors" 
-                          title="Open"
-                        >
-                          <ArrowUpRight size={16} />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+                  <LinkCard 
+                    key={link.shortCode || i}
+                    link={link}
+                    onCopy={copyToClipboard}
+                    onDelete={openDeleteModal}
+                    onShowQR={setActiveQR}
+                    onOpen={(link) => {
+                      setConfirmConfig({
+                        isOpen: true,
+                        title: 'Open External Link',
+                        message: 'This will redirect you to the shortened link in a new tab. Are you sure you want to continue?',
+                        confirmText: 'Open Link',
+                        isDestructive: false,
+                        onConfirm: () => window.open(`${window.location.origin}/${link.shortCode}`, '_blank')
+                      });
+                    }}
+                    onAnalytics={(link) => navigate(`/analytics/${link.shortCode}`)}
+                  />
                 ))
               )}
             </div>
