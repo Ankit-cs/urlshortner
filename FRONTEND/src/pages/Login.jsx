@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+
 
 export default function Login() {
   const { signInWithEmail, signInWithGoogle } = useAuth();
@@ -18,8 +20,10 @@ export default function Login() {
 
     try {
       await signInWithEmail(email, password);
+      toast.success("Welcome back!");
       navigate('/dashboard');
     } catch (err) {
+      toast.error(err.message || 'Failed to login');
       setError(err.message || 'Failed to login');
     } finally {
       setLoading(false);
@@ -33,7 +37,7 @@ export default function Login() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white dark:bg-[#111111] p-8 rounded-3xl border border-black/10 dark:border-white/10 shadow-lg"
       >
-        <h2 className="text-3xl font-bold mb-6 text-center text-black dark:text-white">Welcome Back</h2>
+        <h1 className="text-3xl font-bold mb-6 text-center text-black dark:text-white">Welcome Back</h1>
         
         {error && (
           <div className="bg-red-100 text-red-600 p-3 rounded-xl mb-4 text-sm text-center">
