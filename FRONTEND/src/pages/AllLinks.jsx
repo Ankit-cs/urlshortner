@@ -40,7 +40,23 @@ export default function AllLinks() {
         const res = await fetch(apiUrl, { headers });
         if (res.ok) {
           const data = await res.json();
-          setLinks(data.links);
+          let fetchedLinks = data.links || [];
+          
+          // Merge optimistic UI cache (solves KV eventual consistency)
+          const pendingStr = sessionStorage.getItem('pendingLinks');
+          if (pendingStr) {
+            const pending = JSON.parse(pendingStr);
+            pending.forEach(pLink => {
+              if (!fetchedLinks.some(f => f.shortCode === pLink.shortCode || (f.targetUrl && pLink.originalUrl && f.targetUrl === pLink.originalUrl))) {
+                fetchedLinks.unshift({
+                  ...pLink,
+                  targetUrl: pLink.originalUrl || pLink.targetUrl
+                });
+              }
+            });
+          }
+
+          setLinks(fetchedLinks.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         } else {
           console.error('Failed to fetch links');
         }
@@ -98,19 +114,19 @@ export default function AllLinks() {
   };
 
   if (authLoading || !user) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#050505]"><div className="w-8 h-8 border-4 border-gray-200 border-t-black dark:border-[#333] dark:border-t-white rounded-full animate-spin" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black"><div className="w-8 h-8 border-4 border-gray-200 border-t-black dark:border-[#333] dark:border-t-white rounded-full animate-spin" /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#050505] text-gray-900 dark:text-white selection:bg-blue-500/30 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30 p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         
         <div className="flex flex-col gap-6 mb-8">
           <button 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
             className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors w-fit"
           >
-            <ArrowLeft size={16} /> Back to Dashboard
+            <ArrowLeft size={16} /> Back to Home
           </button>
           
           <div>
