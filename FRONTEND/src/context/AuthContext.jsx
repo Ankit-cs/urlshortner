@@ -38,8 +38,7 @@ export const AuthProvider = ({ children }) => {
           scopes: 'https://www.googleapis.com/auth/drive.file',
           redirectTo: window.location.origin,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
+            access_type: 'offline'
           }
         }
       });
