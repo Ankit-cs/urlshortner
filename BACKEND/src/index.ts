@@ -1,5 +1,11 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
+import { z } from 'zod';
 
+const shortenSchema = z.object({
+	url: z.string().url('Invalid URL format'),
+	alias: z.string().regex(/^[a-zA-Z0-9-]*$/, 'Alias can only contain letters, numbers, and hyphens').max(30).optional().or(z.literal('')),
+	turnstileToken: z.string().optional()
+});
 export interface Env {
 	LINKS: KVNamespace;
 	SUPABASE_URL: string;
@@ -236,14 +242,20 @@ export default {
 		// ─── POST /api/shorten ───
 		if (url.pathname === '/api/shorten' && request.method === 'POST') {
 			try {
-				const { url: targetUrl, alias, turnstileToken } = await request.json<{
-					url: string; alias?: string; turnstileToken?: string;
-				}>();
+				const body = await request.json<any>();
+				const parsed = shortenSchema.safeParse(body);
+				
+				if (!parsed.success) {
+					return new Response(JSON.stringify({ error: parsed.error.issues[0].message }), {
+						status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders }
+					});
+				}
+
+				const { url: targetUrl, alias, turnstileToken } = parsed.data;
 
 				let parsedUrl: URL;
 				try {
 					parsedUrl = new URL(targetUrl);
-					if (!['http:', 'https:'].includes(parsedUrl.protocol)) throw new Error();
 				} catch {
 					return new Response(JSON.stringify({ error: 'Invalid URL' }), {
 						status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders }
@@ -314,6 +326,23 @@ export default {
 				return Response.redirect(`${frontendUrl}`, 302);
 			}
 
+			const cache = caches.default;
+			const cacheKey = new Request(url.toString(), request);
+			let cachedResponse = await cache.match(cacheKey);
+
+			if (cachedResponse) {
+				// Cache hit! Track analytics asynchronously without blocking the response
+				const eventId = `event:${shortCode}:${Date.now()}-${generateId(4)}`;
+				const eventData = {
+					timestamp: new Date().toISOString(),
+					referrer: request.headers.get('Referer') || 'Direct',
+					userAgent: request.headers.get('User-Agent') || 'Unknown',
+					ip: request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'Unknown'
+				};
+				ctx.waitUntil(env.LINKS.put(eventId, JSON.stringify(eventData), { expirationTtl: 2592000 }));
+				return cachedResponse;
+			}
+
 			const dataStr = await env.LINKS.get(shortCode);
 			if (!dataStr) {
 				return Response.redirect(`${frontendUrl}/not-found`, 302);
@@ -324,6 +353,8 @@ export default {
 				const data = JSON.parse(dataStr);
 				if (data.deleted) return Response.redirect(`${frontendUrl}/not-found`, 302);
 				targetUrl = data.targetUrl || dataStr;
+				
+				// Update clicks asynchronously
 				ctx.waitUntil(env.LINKS.put(shortCode, JSON.stringify({ ...data, clicks: (data.clicks || 0) + 1 })));
 				
 				const eventId = `event:${shortCode}:${Date.now()}-${generateId(4)}`;
@@ -336,7 +367,13 @@ export default {
 				ctx.waitUntil(env.LINKS.put(eventId, JSON.stringify(eventData), { expirationTtl: 2592000 }));
 			} catch {}
 
-			return Response.redirect(targetUrl, 302);
+			const redirectResponse = Response.redirect(targetUrl, 302);
+			
+			// Cache the response at the edge for 60 seconds
+			redirectResponse.headers.set('Cache-Control', 's-maxage=60');
+			ctx.waitUntil(cache.put(cacheKey, redirectResponse.clone()));
+
+			return redirectResponse;
 		}
 
 		return new Response('shrink URL Shortener', { headers: corsHeaders });
@@ -349,10 +386,10 @@ export default {
 		let totalDeleted = 0;
 		
 		do {
-			const list = await env.LINKS.list({ cursor });
-			cursor = list.list_complete ? undefined : list.cursor;
+			const listResult: any = await env.LINKS.list({ cursor });
+			cursor = listResult.list_complete ? undefined : listResult.cursor;
 			
-			for (const key of list.keys) {
+			for (const key of listResult.keys) {
 				// We only care about root link items (length typically 4-12 chars), not event logs
 				if (!key.name.startsWith('event:') && !key.name.startsWith('user_links:')) {
 					const dataStr = await env.LINKS.get(key.name);
