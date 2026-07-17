@@ -47,6 +47,7 @@ export default {
 
 			// Bypass check for testing/mock tokens or if Supabase is unconfigured
 			if (!env.SUPABASE_URL || env.SUPABASE_URL === 'your-supabase-url' || token === 'mock-test-token' || token.startsWith('test-')) {
+				console.warn("WARNING: Auth bypass is active. For testing only. If seen, report to site owner.");
 				return { userId: 'testing-user-id', error: null };
 			}
 
@@ -62,6 +63,7 @@ export default {
 				if (!res.ok) {
 					// Fallback for testing/offline states
 					if (token === 'undefined' || token === 'null') {
+						console.warn("WARNING: Fallback auth is active. For testing only. If seen, report to site owner.");
 						return { userId: 'testing-user-id', error: null };
 					}
 					return { userId: null, error: `Auth failed: ${res.status}` };
@@ -70,7 +72,7 @@ export default {
 				const data = (await res.json()) as any;
 				return { userId: data.id, error: null };
 			} catch (e: any) {
-				console.error("Supabase authentication connection failed. Falling back to testing-user-id:", e.message);
+				console.error("Supabase authentication connection failed. Falling back to testing-user-id. For testing only. If seen, report to site owner:", e.message);
 				return { userId: 'testing-user-id', error: null };
 			}
 		};
