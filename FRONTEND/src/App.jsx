@@ -66,7 +66,12 @@ function RedirectHandler() {
   useEffect(() => {
     if (!targetUrl) return;
     if (countdown <= 0) {
-      window.location.replace(targetUrl);
+      // Ensure we redirect properly by checking the protocol
+      let finalUrl = targetUrl;
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      window.location.href = finalUrl;
       return;
     }
     const timer = setTimeout(() => setCountdown(c => c - 1), 1000);
@@ -74,7 +79,13 @@ function RedirectHandler() {
   }, [targetUrl, countdown]);
 
   const handleContinue = () => {
-    if (targetUrl) window.location.replace(targetUrl);
+    if (targetUrl) {
+      let finalUrl = targetUrl;
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      window.location.href = finalUrl;
+    }
   };
 
   if (error) {
