@@ -4,7 +4,8 @@
   <p><em>Lightning-fast, highly scalable, and privacy-focused URL shortening at the edge.</em></p>
   
   <p>
-    <a href="https://shrink-pi.vercel.app"><strong>Explore the Platform »</strong></a>
+    <a href="https://shrink-pi.vercel.app"><strong>Explore the Platform »</strong></a> | 
+    <a href="https://worker.ankitcareer018.workers.dev"><strong>Live Backend API »</strong></a>
   </p>
 
   <p>
@@ -50,6 +51,9 @@ graph TD
     
     B --> M[wrangler.jsonc]
     B --> N[.env]
+    
+    A --> O(BACKEND/)
+    O -.-> |Live Cloudflare Worker| P[worker.ankitcareer018.workers.dev]
 
     style A fill:#2d3436,stroke:#000,stroke-width:2px,color:#fff
     style B fill:#0984e3,stroke:#000,stroke-width:2px,color:#fff
@@ -58,6 +62,7 @@ graph TD
     style E fill:#00b894,stroke:#000,stroke-width:2px,color:#fff
     style M fill:#e17055,stroke:#000,stroke-width:2px,color:#fff
     style N fill:#ffeaa7,stroke:#000,stroke-width:2px,color:#000
+    style O fill:#6c5ce7,stroke:#000,stroke-width:2px,color:#fff
 ```
 
 ## 🛠️ How to Run Locally
@@ -85,7 +90,7 @@ To properly configure the application, ensure you have a `.env` and `.dev.vars` 
 # .env (For React/Vite)
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
-VITE_API_URL=http://127.0.0.1:8787
+VITE_API_URL=https://worker.ankitcareer018.workers.dev
 
 # .dev.vars (For Cloudflare Edge Functions)
 SUPABASE_URL=https://your-project.supabase.co
