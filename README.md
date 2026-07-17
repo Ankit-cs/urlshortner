@@ -28,6 +28,7 @@ Shrink is a highly scalable, edge-optimized URL Shortener built for extreme perf
 * 📱 **Client-Side QR Codes**: Instant, zero-latency QR code generation for shortened links rendered entirely within the browser.
 * 🛡️ **Turnstile Protection**: Cloudflare Turnstile integration protects against bots seamlessly without intrusive captchas.
 * 🔐 **Secure Authentication**: Fully integrated Supabase identity management for secure user accounts and historical link tracking.
+* 🔍 **Technical SEO Optimized**: Built-in Open Graph metadata, semantic HTML hierarchy, and optimized performance for high search engine visibility.
 
 ## ⚙️ Architecture & Folder Structure
 
