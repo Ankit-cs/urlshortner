@@ -21,6 +21,8 @@ import Register from './pages/Register';
 import NotFound from './pages/NotFound';
 import TodosTest from './pages/TodosTest';
 import { backupLinkToDrive } from './utils/googleDrive';
+import AuthButton from './components/AuthButton';
+import { Toaster, toast } from 'sonner';
 
 function RedirectHandler() {
   const { shortCode } = useParams();
@@ -217,18 +219,83 @@ function App() {
   const [error, setError] = useState('');
   const [currentResult, setCurrentResult] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [showAuthDropdown, setShowAuthDropdown] = useState(false);
-  const { user, session, signInWithGoogle, signOut } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { user, session, loading: authLoading, signInWithGoogle, signOut } = useAuth();
   const { links, addLink, removeLink, clearLinks } = useLinkStore();
   const [copiedId, setCopiedId] = useState(null);
   const [showQR, setShowQR] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ isOpen: false });
+  const [userLinks, setUserLinks] = useState([]);
+  const [userLinksLoading, setUserLinksLoading] = useState(false);
+
+  useEffect(() => {
+    if (showHistory && session?.access_token) {
+      setUserLinksLoading(true);
+      const fetchUserLinks = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/links` : '/api/links';
+          const res = await fetch(apiUrl, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUserLinks(data.links || []);
+          }
+        } catch (err) {
+          console.error("Failed to fetch user links:", err);
+        } finally {
+          setUserLinksLoading(false);
+        }
+      };
+      fetchUserLinks();
+    }
+  }, [showHistory, session]);
+
+  const handleDeleteLink = async (shortCode) => {
+    if (session?.access_token) {
+      setConfirmConfig({
+        isOpen: true,
+        title: 'Delete Link',
+        message: 'Are you sure you want to delete this link forever? This action cannot be undone.',
+        confirmText: 'Delete',
+        isDestructive: true,
+        onConfirm: async () => {
+          try {
+            const apiUrl = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api/links/${shortCode}` : `/api/links/${shortCode}`;
+            const res = await fetch(apiUrl, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            if (res.ok) {
+              setUserLinks(prev => prev.filter(l => l.shortCode !== shortCode));
+              toast.success("Link deleted successfully.");
+            } else {
+              toast.error("Failed to delete link.");
+            }
+          } catch (err) {
+            console.error("Delete error:", err);
+            toast.error("Error deleting link.");
+          }
+        }
+      });
+    }
+  };
 
   const handleShorten = async (e) => {
     e.preventDefault();
     setError('');
     setCurrentResult(null);
     setShowQR(false);
+
+    if (!user) {
+      toast.error('Please sign in to shorten links.');
+      setShowAuthModal(true);
+      return;
+    }
 
     if (!url) {
       setError('Please enter a URL');
@@ -320,7 +387,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen font-sans selection:bg-black/10 bg-brand-light text-text-primary relative z-0 overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-black/10 bg-brand-light text-text-primary relative z-0 overflow-hidden transition-colors duration-300">
       {/* Ambient background glows */}
       <div className="absolute top-[-200px] right-[-200px] w-[600px] h-[600px] bg-brand-green/50 rounded-full blur-[130px] pointer-events-none z-0" />
       <div className="absolute bottom-[-100px] left-[-200px] w-[500px] h-[500px] bg-brand-green-accent/30 rounded-full blur-[130px] pointer-events-none z-0" />
@@ -336,59 +403,31 @@ function App() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-400">
             <RouterLink to="/" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-colors">Home</RouterLink>
             <a href="/#why" onClick={handleWhyClick} className="px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-colors">Why shrink</a>
-            <RouterLink to="/about" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="px-3 py-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-colors">About</RouterLink>
           </nav>
           <div className="flex items-center gap-2 sm:gap-4">
-            <button 
-              onClick={() => setShowHistory(!showHistory)}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors hidden sm:block text-gray-700 dark:text-gray-300"
-            >
-              <History size={18} />
-            </button>
+            {user && (
+              <button 
+                onClick={() => setShowHistory(!showHistory)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors hidden sm:block text-gray-700 dark:text-gray-300"
+              >
+                <History size={18} />
+              </button>
+            )}
             {/* <button 
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-700 dark:text-gray-300"
             >
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button> */}
-            {user ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-green to-blue-500 flex items-center justify-center text-white font-bold shadow-sm">
-                    {user.email?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    signOut().then(() => {
-                      if (location.pathname.startsWith('/dashboard')) {
-                        navigate('/');
-                      }
-                    });
-                  }}
-                  className="btn-white py-2 px-4 text-sm text-red-600 hover:text-red-700 hover:border-red-600 dark:hover:border-red-500 transition-colors"
-                >
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                onClick={signInWithGoogle} 
-                className="btn-black py-2 px-5 text-sm cursor-pointer"
-              >
-                Sign In <ArrowRight size={14} />
-              </motion.button>
-            )}
+            <AuthButton user={user} showAuthModal={showAuthModal} setShowAuthModal={setShowAuthModal} />
           </div>
         </div>
       </header>
 
       {/* Main Routes with Animations */}
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+      <div className="flex-grow flex flex-col relative z-10">
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
           <Route path="/" element={
             <motion.main
               initial={{ opacity: 0 }}
@@ -401,7 +440,7 @@ function App() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
-                className={`relative w-full pt-12 md:pt-20 pb-16 overflow-hidden flex flex-col items-center ${user ? 'min-h-[60vh]' : 'min-h-[90vh]'}`}
+                className="relative w-full pt-12 md:pt-20 pb-16 overflow-hidden flex flex-col items-center min-h-[90vh]"
               >
                 <div className="grid-overlay" />
         {/* Hero Section */}
@@ -416,83 +455,104 @@ function App() {
               URLs got out of hand. shrink puts them back in their place - shorter, smarter, and fully under your control. Your browser does the work. Your data stays yours.
             </p>
 
-            <div className={`flex flex-col sm:flex-row gap-4 justify-center items-center w-full ${user ? 'mb-4' : 'mb-16'}`}>
-              {user ? (
+            {!user && !authLoading && (
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full mb-16">
                 <motion.button 
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  onClick={() => navigate('/dashboard')} 
-                  className="btn-white w-full sm:w-auto px-8"
+                  onClick={() => document.getElementById('urlInput').focus()} 
+                  className="btn-white w-full sm:w-auto"
                 >
-                  Open Dashboard <ArrowRight size={16} />
+                  Get Started <ArrowRight size={16} />
                 </motion.button>
-              ) : (
-                <>
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    onClick={() => document.getElementById('urlInput').focus()} 
-                    className="btn-white w-full sm:w-auto"
-                  >
-                    Get Started <ArrowRight size={16} />
-                  </motion.button>
-                  <motion.a 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    href="#features" 
-                    onClick={handleFeaturesClick}
-                    className="btn-white w-full sm:w-auto"
-                  >
-                    Explore Features
-                  </motion.a>
-                </>
-              )}
-            </div>
-
-            {/* Shortener Box */}
-            {!user && (
-              <div className="flex flex-col items-center w-full max-w-2xl">
-                <div className="w-full bg-card-bg border border-card-border backdrop-blur-md rounded-3xl sm:rounded-full p-2 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative z-20 transition-all duration-500 hover:shadow-xl hover:border-brand-green/50 focus-within:ring-4 focus-within:ring-brand-green/10 focus-within:border-brand-green">
-                  <form onSubmit={handleShorten} className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      id="urlInput"
-                      type="text"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="Paste your long URL here..."
-                      className="flex-1 bg-transparent border-0 py-3 px-4 sm:py-4 sm:px-6 text-base sm:text-lg focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600 font-medium text-black dark:text-white rounded-2xl sm:rounded-full"
-                    />
-                    <motion.button 
-                      type="submit"
-                      disabled={loading || !turnstileToken}
-                      whileHover={loading || !turnstileToken ? {} : { scale: 1.05 }}
-                      whileTap={loading || !turnstileToken ? {} : { scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                      className="btn-black flex items-center justify-center min-w-[140px] rounded-2xl sm:rounded-full py-3 sm:py-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black rounded-full animate-spin" />
-                      ) : (
-                        <>Shrink me <ArrowRight size={18} /></>
-                      )}
-                    </motion.button>
-                  </form>
-                </div>
-                <div className="flex justify-center mt-6">
-                  <Turnstile 
-                    siteKey="1x00000000000000000000AA" 
-                    onSuccess={(token) => setTurnstileToken(token)}
-                    options={{ theme: theme === 'dark' ? 'dark' : 'light' }}
-                  />
-                </div>
+                <motion.a 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  href="#features" 
+                  onClick={handleFeaturesClick}
+                  className="btn-white w-full sm:w-auto"
+                >
+                  Explore Features
+                </motion.a>
               </div>
             )}
+
+            {/* Content Area: Dashboard or Shortener Box */}
+            <div className="w-full flex justify-center">
+              <AnimatePresence mode="wait">
+                {authLoading ? (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex justify-center my-12"
+                  >
+                    <div className="w-8 h-8 border-4 border-gray-200 border-t-black dark:border-[#333] dark:border-t-white rounded-full animate-spin" />
+                  </motion.div>
+                ) : user ? (
+                  <motion.div
+                    key="dashboard"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="w-full mt-4 max-w-7xl flex justify-center"
+                  >
+                    <Dashboard />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="shortener"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="flex flex-col items-center w-full max-w-2xl"
+                  >
+                    <div className="w-full bg-card-bg border border-card-border backdrop-blur-md rounded-3xl sm:rounded-full p-2 shadow-[0_8px_30px_rgb(0,0,0,0.02)] relative z-20 transition-all duration-500 hover:shadow-xl hover:border-brand-green/50 focus-within:ring-4 focus-within:ring-brand-green/10 focus-within:border-brand-green">
+                      <form onSubmit={handleShorten} className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          id="urlInput"
+                          type="text"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder="Paste your long URL here..."
+                          className="flex-1 bg-transparent border-0 py-3 px-4 sm:py-4 sm:px-6 text-base sm:text-lg focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600 font-medium text-black dark:text-white rounded-2xl sm:rounded-full"
+                        />
+                        <motion.button 
+                          type="submit"
+                          disabled={loading || !turnstileToken}
+                          whileHover={loading || !turnstileToken ? {} : { scale: 1.05 }}
+                          whileTap={loading || !turnstileToken ? {} : { scale: 0.95 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                          className="btn-black flex items-center justify-center min-w-[140px] rounded-2xl sm:rounded-full py-3 sm:py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loading ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white dark:border-black/30 dark:border-t-black rounded-full animate-spin" />
+                          ) : (
+                            <>Shrink me <ArrowRight size={18} /></>
+                          )}
+                        </motion.button>
+                      </form>
+                    </div>
+                    <div className="flex justify-center mt-6">
+                      <Turnstile 
+                        siteKey="1x00000000000000000000AA" 
+                        onSuccess={(token) => setTurnstileToken(token)}
+                        options={{ theme: theme === 'dark' ? 'dark' : 'light' }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </section>
           <AnimatePresence>
-            {!user && error && (
+            {error && (
               <motion.p 
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -505,7 +565,7 @@ function App() {
           </AnimatePresence>
           
           <AnimatePresence>
-            {!user && currentResult && (
+            {currentResult && (
               <motion.div
                 initial={{ opacity: 0, y: -10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -695,17 +755,17 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/how-it-works" element={<HowItWorks />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/links" element={<AllLinks />} />
+          <Route path="/links" element={<AllLinks />} />
           <Route path="/todos" element={<TodosTest />} />
           <Route path="/not-found" element={<NotFound />} />
           <Route path="/:shortCode" element={<RedirectHandler />} />
         </Routes>
       </AnimatePresence>
+     </div>
 
       {/* Footer */}
-      <footer className="w-full bg-black dark:bg-[#050505] text-white pt-24 pb-8 px-6 relative z-10 transition-colors duration-300">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+      <footer className="w-full bg-black dark:bg-[#050505] text-white pt-10 pb-6 px-6 relative z-10 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-6">
           <div className="col-span-1">
             <RouterLink to="/" onClick={handleLogoClick} className="font-bold text-2xl tracking-tight flex items-center gap-2 mb-4 text-white hover:opacity-80 transition-opacity">
               shrink
@@ -724,24 +784,26 @@ function App() {
           </div>
           
           <div>
-            <div className="flex gap-4">
-              <a href="#" className="text-gray-400 hover:text-black dark:hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-black dark:hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-                </svg>
-              </a>
-              <a href="#" className="text-gray-400 hover:text-black dark:hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                </svg>
-              </a>
-            </div>
+            <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Legal</h4>
+            <ul className="space-y-4 text-sm text-gray-300">
+              <li><RouterLink to="/privacy-policy" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">Privacy Policy</RouterLink></li>
+              <li><RouterLink to="/disclaimer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">Disclaimer</RouterLink></li>
+              <li><RouterLink to="/terms-of-service" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">Terms of Service</RouterLink></li>
+              <li><button onClick={() => window.dispatchEvent(new CustomEvent('openCookieSettings'))} className="hover:text-white transition-colors">Cookie Settings</button></li>
+            </ul>
           </div>
+          
+          <div>
+            <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-6">Company</h4>
+            <ul className="space-y-4 text-sm text-gray-300">
+              <li><RouterLink to="/contact" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">Contact</RouterLink></li>
+              <li><RouterLink to="/faq" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-white transition-colors">FAQs</RouterLink></li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto pt-4 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <div>© {new Date().getFullYear()} shrink. All rights reserved.</div>
         </div>
       </footer>
 
@@ -771,7 +833,12 @@ function App() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-                {links.length === 0 ? (
+                {userLinksLoading ? (
+                  <div className="text-center py-12 flex flex-col items-center gap-3 text-gray-400 dark:text-gray-600 animate-pulse">
+                    <History size={32} className="animate-spin text-brand-green" />
+                    <p>Loading history...</p>
+                  </div>
+                ) : userLinks.length === 0 ? (
                   <div className="text-center py-12 flex flex-col items-center gap-3 text-gray-400 dark:text-gray-600">
                     <Scissors size={32} />
                     <p>No links shortened yet.</p>
@@ -779,49 +846,52 @@ function App() {
                 ) : (
                   <>
                     <div className="flex justify-end mb-2">
-                      <button onClick={clearLinks} className="text-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-semibold flex items-center gap-1">
-                        <Trash2 size={14}/> Clear All
-                      </button>
+                      <p className="text-xs text-gray-400 font-semibold self-center mr-auto">
+                        Showing {userLinks.length} saved links
+                      </p>
                     </div>
-                    {links.map((link) => (
-                      <div key={link.id} className="bg-gray-50 dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 rounded-2xl p-4 group">
-                        <a 
-                          href={link.shortUrl} 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setConfirmConfig({
-                              isOpen: true,
-                              title: 'Open External Link',
-                              message: 'This will redirect you to the shortened link in a new tab. Are you sure you want to continue?',
-                              confirmText: 'Open Link',
-                              isDestructive: false,
-                              onConfirm: () => {
-                                window.open(link.shortUrl, '_blank');
-                              }
-                            });
-                          }}
-                          className="text-base font-bold text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-colors truncate block mb-1"
-                        >
-                          {link.shortUrl.replace(/^https?:\/\//, '')}
-                        </a>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-3">{link.originalUrl}</p>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => copyToClipboard(link.shortUrl, link.id)}
-                            className="flex-1 py-1.5 rounded-lg bg-white dark:bg-[#222] border border-black/10 dark:border-white/10 text-sm font-semibold flex items-center justify-center gap-1 hover:border-black dark:hover:border-white transition-colors text-black dark:text-white"
+                    {userLinks.map((link) => {
+                      const shortUrl = `${window.location.origin}/${link.shortCode}`;
+                      return (
+                        <div key={link.shortCode} className="bg-gray-50 dark:bg-[#1a1a1a] border border-black/10 dark:border-white/10 rounded-2xl p-4 group">
+                          <a 
+                            href={shortUrl} 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setConfirmConfig({
+                                isOpen: true,
+                                title: 'Open External Link',
+                                message: 'This will redirect you to the shortened link in a new tab. Are you sure you want to continue?',
+                                confirmText: 'Open Link',
+                                isDestructive: false,
+                                onConfirm: () => {
+                                  window.open(shortUrl, '_blank');
+                                }
+                              });
+                            }}
+                            className="text-base font-bold text-black dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-colors truncate block mb-1"
                           >
-                            <Copy size={14} /> Copy
-                          </button>
-                          <button
-                            onClick={() => removeLink(link.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            {shortUrl.replace(/^https?:\/\//, '')}
+                          </a>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-3">{link.targetUrl}</p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => copyToClipboard(shortUrl, link.shortCode)}
+                              className="flex-1 py-1.5 rounded-lg bg-white dark:bg-[#222] border border-black/10 dark:border-white/10 text-sm font-semibold flex items-center justify-center gap-1 hover:border-black dark:hover:border-white transition-colors text-black dark:text-white"
+                            >
+                              <Copy size={14} /> Copy
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLink(link.shortCode)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </>
                 )}
               </div>
@@ -845,7 +915,8 @@ function App() {
         )}
       </AnimatePresence>
 
-      <CookieConsent />
+       <Toaster richColors position="bottom-center" closeButton />
+       <CookieConsent />
       
       <AnimatePresence>
         <ConfirmModal 
