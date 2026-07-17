@@ -36,6 +36,8 @@ export default function Dashboard() {
 
   // Shortening State
   const [url, setUrl] = useState('');
+  const [alias, setAlias] = useState('');
+  const [showAlias, setShowAlias] = useState(false);
   const [isShortening, setIsShortening] = useState(false);
 
   // QR Modal State
@@ -133,7 +135,8 @@ export default function Dashboard() {
         method: 'POST',
         headers,
         body: JSON.stringify({ 
-          url: url.trim()
+          url: url.trim(),
+          alias: showAlias && alias.trim() ? alias.trim() : undefined
         })
       });
       
@@ -155,9 +158,20 @@ export default function Dashboard() {
           }).catch(e => console.error("Drive Backup Error:", e));
         }
 
+        // Update optimistic UI cache
+        const pendingStr = sessionStorage.getItem('pendingLinks');
+        const pendingLinks = pendingStr ? JSON.parse(pendingStr) : [];
+        pendingLinks.unshift(newLink);
+        sessionStorage.setItem('pendingLinks', JSON.stringify(pendingLinks));
+
         setLinks(prev => [newLink, ...prev]);
         setLinksUsed(prev => prev + 1);
         setUrl('');
+        setAlias('');
+        setShowAlias(false);
+      } else if (res.status === 409) {
+        const errorData = await res.json();
+        alert(errorData.error || 'Alias already taken. Please choose another one.');
       } else if (res.status === 429) {
         const errorData = await res.json();
         alert(errorData.error || 'Monthly limit reached.');
@@ -225,7 +239,7 @@ export default function Dashboard() {
   const firstName = user.user_metadata?.full_name?.split(' ')[0] || 'Creator';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-white selection:bg-blue-500/30">
+    <div className="w-full text-gray-900 dark:text-white selection:bg-blue-500/30">
       
       {/* Top Navbar Removed */}
 
@@ -277,6 +291,42 @@ export default function Dashboard() {
                       <>shrink it <ArrowUpRight size={16} /></>
                     )}
                   </button>
+              </div>
+              
+              {/* Alias Toggle & Input */}
+              <div className="flex flex-col gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAlias(!showAlias)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors w-fit"
+                >
+                  <span className={`transform transition-transform ${showAlias ? 'rotate-90' : ''}`}>›</span>
+                  Customize back-half (optional)
+                </button>
+                
+                <AnimatePresence>
+                  {showAlias && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }} 
+                      animate={{ opacity: 1, height: 'auto' }} 
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2 bg-gray-50 dark:bg-[#1a1a1a] border border-black/15 dark:border-white/10 rounded-xl p-2 focus-within:border-black dark:focus-within:border-white/30 transition-all max-w-sm">
+                        <span className="pl-3 text-gray-500 text-sm font-medium">shrink.com/</span>
+                        <input
+                          type="text"
+                          value={alias}
+                          onChange={(e) => setAlias(e.target.value.replace(/[^a-zA-Z0-9-_]/g, ''))}
+                          placeholder="my-custom-name"
+                          maxLength={32}
+                          className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder:text-gray-400 text-sm py-1 min-w-0"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2 ml-1">Use letters, numbers, hyphens, or underscores.</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </form>
           </div>
@@ -349,7 +399,7 @@ export default function Dashboard() {
                 <h3 className="font-medium text-gray-900 dark:text-white text-lg">Recent links</h3>
                 <p className="text-xs text-gray-500 mt-1">Links can't be edited after creation. <br className="block sm:hidden" />Re-shrink if needed.</p>
               </div>
-              <button onClick={() => navigate('/dashboard/links')} className="text-sm font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:underline transition-colors mt-1 whitespace-nowrap">
+              <button onClick={() => navigate('/links')} className="text-sm font-medium text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:underline transition-colors mt-1 whitespace-nowrap">
                 View all
               </button>
             </div>
