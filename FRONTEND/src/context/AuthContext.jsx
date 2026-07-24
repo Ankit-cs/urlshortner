@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
 
 const AuthContext = createContext();
+const SESSION_EXPIRY_KEY = 'shrink_session_expires_at';
+const SESSION_DURATION_MS = 10 * 60 * 1000;
 
 export const useAuth = () => {
   return useContext(AuthContext);
@@ -13,21 +15,52 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let logoutTimer;
+
+    const clearSessionExpiry = () => {
+      localStorage.removeItem(SESSION_EXPIRY_KEY);
+      window.clearTimeout(logoutTimer);
+    };
+
+    const scheduleAutoLogout = async () => {
+      const storedExpiry = Number(localStorage.getItem(SESSION_EXPIRY_KEY));
+      const expiresAt = storedExpiry > Date.now()
+        ? storedExpiry
+        : Date.now() + SESSION_DURATION_MS;
+
+      localStorage.setItem(SESSION_EXPIRY_KEY, String(expiresAt));
+      window.clearTimeout(logoutTimer);
+      logoutTimer = window.setTimeout(async () => {
+        clearSessionExpiry();
+        await supabase.auth.signOut();
+      }, expiresAt - Date.now());
+    };
+
     // Get current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session) scheduleAutoLogout();
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (!session || event === 'SIGNED_OUT') {
+        clearSessionExpiry();
+      } else if (event === 'SIGNED_IN') {
+        localStorage.setItem(SESSION_EXPIRY_KEY, String(Date.now() + SESSION_DURATION_MS));
+        scheduleAutoLogout();
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(logoutTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
