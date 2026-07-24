@@ -39,7 +39,7 @@ const faqCategories = [
     items: [
       {
         question: "Do you use cookies or track my data?",
-        answer: "No. shrink is completely cookie-free and tracking-free. We do not collect Personally Identifiable Information (PII) or serve ads. We only log anonymous click data (like country and referrers) to provide you with link analytics."
+        answer: "We use essential authentication and security cookies where required to keep you signed in and protect the service. You can manage optional cookie preferences in Cookie Settings. We do not serve advertising cookies or sell personal data; anonymous click data, such as country and referrer, may be used for link analytics."
       },
       {
         question: "How do you handle spam and abuse?",
